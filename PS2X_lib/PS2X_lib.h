@@ -77,6 +77,8 @@ GNU General Public License for more details.
 //#define PS2X_DEBUG
 //#define PS2X_COM_DEBUG
 
+// 
+
 #ifndef PS2X_lib_h
   #define PS2X_lib_h
 
@@ -101,6 +103,7 @@ GNU General Public License for more details.
   #define CTRL_CLK_HIGH   5
   #define CTRL_BYTE_DELAY 4
 #endif 
+
 
 //These are our button constants
 #define PSB_SELECT      0x0001
@@ -181,6 +184,8 @@ class PS2X {
     bool enablePressures();
     byte Analog(byte);
     void reconfig_gamepad();
+    // DDR pads have issue with the default setting of 5 so this function was added to allow for setting of 0 to turn off things that would cause delays
+    void set_RetryCntMax(byte val);
 
   private:
     inline void CLK_SET(void);
@@ -228,6 +233,7 @@ class PS2X {
     byte controller_type;
     boolean en_Rumble;
     boolean en_Pressures;
+    byte RetryCntMax;
 };
 
 #endif

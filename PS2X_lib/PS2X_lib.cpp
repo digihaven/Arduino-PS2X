@@ -95,41 +95,63 @@ boolean PS2X::read_gamepad(boolean motor1, byte motor2) {
 
    char dword[9] = {0x01,0x42,0,motor1,motor2,0,0,0,0};
    byte dword2[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
+	if (RetryCntMax !=0 )
+	{
+	   // Try a few times to get valid data...
+	   for (byte RetryCnt = 0; RetryCnt < RetryCntMax; RetryCnt++) {
+	      CMD_SET();
+	      CLK_SET();
+	      ATT_CLR(); // low enable joystick
 
-   // Try a few times to get valid data...
-   for (byte RetryCnt = 0; RetryCnt < 5; RetryCnt++) {
-      CMD_SET();
-      CLK_SET();
-      ATT_CLR(); // low enable joystick
+	      delayMicroseconds(CTRL_BYTE_DELAY);
+	      //Send the command to send button and joystick data;
+	      for (int i = 0; i<9; i++) {
+		 PS2data[i] = _gamepad_shiftinout(dword[i]);
+	      }
 
-      delayMicroseconds(CTRL_BYTE_DELAY);
-      //Send the command to send button and joystick data;
-      for (int i = 0; i<9; i++) {
-         PS2data[i] = _gamepad_shiftinout(dword[i]);
-      }
+	      if(PS2data[1] == 0x79) {  //if controller is in full data return mode, get the rest of data
+		 for (int i = 0; i<12; i++) {
+		    PS2data[i+9] = _gamepad_shiftinout(dword2[i]);
+		 }
+	      }
 
-      if(PS2data[1] == 0x79) {  //if controller is in full data return mode, get the rest of data
-         for (int i = 0; i<12; i++) {
-            PS2data[i+9] = _gamepad_shiftinout(dword2[i]);
-         }
-      }
+	      ATT_SET(); // HI disable joystick
+	      // Check to see if we received valid data or not.  
+		  // We should be in analog mode for our data to be valid (analog == 0x7_)
+	      if ((PS2data[1] & 0xf0) == 0x70)
+		 break;
 
-      ATT_SET(); // HI disable joystick
-      // Check to see if we received valid data or not.  
-	  // We should be in analog mode for our data to be valid (analog == 0x7_)
-      if ((PS2data[1] & 0xf0) == 0x70)
-         break;
+	      // If we got to here, we are not in analog mode, try to recover...
+	      reconfig_gamepad(); // try to get back into Analog mode.
+	      delay(read_delay);
+	   }
+	
+	   // If we get here and still not in analog mode (=0x7_), try increasing the read_delay...
+	   if ((PS2data[1] & 0xf0) != 0x70) {
+	      if (read_delay < 10)
+		 read_delay++;   // see if this helps out...
+	   }
+	} else
+	{
+	      CMD_SET();
+	      CLK_SET();
+	      ATT_CLR(); // low enable joystick
 
-      // If we got to here, we are not in analog mode, try to recover...
-      reconfig_gamepad(); // try to get back into Analog mode.
-      delay(read_delay);
-   }
+	      delayMicroseconds(CTRL_BYTE_DELAY);
+	      //Send the command to send button and joystick data;
+	      for (int i = 0; i<9; i++) {
+		 PS2data[i] = _gamepad_shiftinout(dword[i]);
+	      }
 
-   // If we get here and still not in analog mode (=0x7_), try increasing the read_delay...
-   if ((PS2data[1] & 0xf0) != 0x70) {
-      if (read_delay < 10)
-         read_delay++;   // see if this helps out...
-   }
+	      if(PS2data[1] == 0x79) {  //if controller is in full data return mode, get the rest of data
+		 for (int i = 0; i<12; i++) {
+		    PS2data[i+9] = _gamepad_shiftinout(dword2[i]);
+		 }
+	      }
+
+	      ATT_SET(); // HI disable joystick
+
+	}
 
 #ifdef PS2X_COM_DEBUG
    Serial.println("OUT:IN");
@@ -164,8 +186,13 @@ byte PS2X::config_gamepad(uint8_t clk, uint8_t cmd, uint8_t att, uint8_t dat) {
    return config_gamepad(clk, cmd, att, dat, false, false);
 }
 
+void PS2X::set_RetryCntMax(byte val){ 
+	RetryCntMax=0;
+}
+
 /****************************************************************************************/
 byte PS2X::config_gamepad(uint8_t clk, uint8_t cmd, uint8_t att, uint8_t dat, bool pressures, bool rumble) {
+  RetryCntMax=5;
 
   byte temp[sizeof(type_read)];
 
@@ -227,7 +254,7 @@ byte PS2X::config_gamepad(uint8_t clk, uint8_t cmd, uint8_t att, uint8_t dat, bo
   }
 
   //try setting mode, increasing delays if need be.
-  read_delay = 1;
+  read_delay = 5;
 
   for(int y = 0; y <= 10; y++) {
     sendCommandString(enter_config, sizeof(enter_config)); //start config run
