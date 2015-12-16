@@ -57,7 +57,12 @@
 *	Reorganized directory so examples show up in Arduino IDE menu
 *    1.8
 *	Added Arduino 1.0 compatibility. 
-*
+*    1.9DH
+*	Added Wiring for the Leonardo Pro Micro ($5 ebay)
+*	Added full images of wiring Leonardo Pro Micro for DDR pads
+*	Added DDR example with PCSX2 default keymapping
+*	Added set_RetryCntMax() since DDR pads have way too much delay
+*	
 *
 *This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or(at your option) any later version.
 This program is distributed in the hope that it will be useful,
